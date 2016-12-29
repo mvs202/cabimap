@@ -84,7 +84,9 @@ function jurisdiction(x) {
                    return "Fairfax";
   }
 
-d3.xml("https://feeds.capitalbikeshare.com/stations/stations.xml", function(error, stationsXML) {
+// ideally source should be https://feeds.capitalbikeshare.com/stations/stations.xml
+// but they are not (yet) allowing "Access-Control-Allow-Origin"
+d3.xml("http://mvjantzen.com/cabi/stations.php", function(error, stationsXML) {
   if (error) throw error;
   stations = [].map.call(stationsXML.querySelectorAll("station"), function(station) {
     return {
