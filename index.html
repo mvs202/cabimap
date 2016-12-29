@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CaBi Stations</title>
+<meta charset="utf-8">
+<!--Copyright © 2016 Michael Schade, http://mvjantzen.com -->
+<style>
+html {
+  height: 100%;
+  }
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  }
+#map_canvas {
+  height: 100%
+  }
+#controls {
+  font-family: verdana, sans-serif;
+  font-size: 75%;
+  margin: 0px;
+  padding: 2px 8px;
+  background-color: rgba(255,255,255,0.7);
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  display: none;
+  }
+</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+var map;
+var stations;
+
+function changeNumber() {
+  var x = parseInt(document.getElementById("stationNo").value);
+  for (var i = 0; i < stations.length; i++) {
+    if (stations[i].terminalName == x) {
+      stations[i].marker.setIcon("http://maps.google.com/mapfiles/ms/icons/lightblue.png");
+      }
+    }
+  }
+
+function initialize() {
+  var mapOptions = {
+    center: new google.maps.LatLng(38.92, -77.09),
+    zoom: 12,
+    scrollwheel: false,
+    mapTypeId: google.maps.MapTypeId.ROADMAP,
+    mapTypeControlOptions: {
+      position: google.maps.ControlPosition.TOP_RIGHT
+      }
+    }
+  map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+  google.maps.event.addListenerOnce(map, 'tilesloaded', function() {
+    document.getElementById("controls").style.display = "block";
+    });
+  map.data.setStyle({visible: false});
+  }
+
+function jurisdiction(x) {
+  if (x <= 31040) {return "Arlington";}
+  if (x <= 31048) {return "Alexandria";}
+  if (x <= 31063) {return "Arlington";}
+  if (x <= 31064) {return "Alexandria";}
+  if (x <= 31075) {return "Arlington";}
+  if (x <= 31076) {return "Alexandria";}
+  if (x <= 31080) {return "Arlington";}
+  if (x <= 31088) {return "Alexandria";}
+  if (x <= 31096) {return "Arlington";}
+  if (x <= 31099) {return "Alexandria";}
+  if (x <= 31899) {return "DC";}
+  if (x <= 31902) {return "Arlington";}
+  if (x <= 31903) {return "Alexandria";}
+  if (x <= 31905) {return "Arlington";}
+  if (x <= 31916) {return "Alexandria";}
+  if (x <= 31917) {return "Arlington";}
+  if (x <= 31918) {return "Alexandria";}
+  if (x <= 31999) {return "Arlington";}
+  if (x <= 32058) {return "Montgomery";}
+                   return "Fairfax";
+  }
+
+d3.xml("https://feeds.capitalbikeshare.com/stations/stations.xml", function(error, stationsXML) {
+  if (error) throw error;
+  stations = [].map.call(stationsXML.querySelectorAll("station"), function(station) {
+    return {
+      id:                 +station.querySelector("id").textContent,
+      name:                station.querySelector("name").textContent,
+      terminalName:       +station.querySelector("terminalName").textContent,
+      lastCommWithServer: +station.querySelector("lastCommWithServer").textContent,
+      lat:                +station.querySelector("lat").textContent,
+      long:               +station.querySelector("long").textContent,
+      installed:           station.querySelector("installed").textContent,
+      locked:              station.querySelector("locked").textContent,
+      installDate:        +station.querySelector("installDate").textContent,
+      removalDate:        +station.querySelector("removalDate").textContent,
+      temporary:           station.querySelector("temporary").textContent,
+      public:              station.querySelector("public").textContent,
+      nbBikes:            +station.querySelector("nbBikes").textContent,
+      nbEmptyDocks:       +station.querySelector("nbEmptyDocks").textContent,
+      latestUpdateTime:   +station.querySelector("latestUpdateTime").textContent
+      };
+    });
+  var regions = {};
+  regions["DC"] = {color: "red", total: 0};
+  regions["Arlington"] = {color: "green", total: 0};
+  regions["Alexandria"] = {color: "blue", total: 0};
+  regions["Montgomery"] = {color: "yellow", total: 0};
+  regions["Fairfax"] = {color: "purple", total: 0};
+  for (var i = 0; i < stations.length; i++) {
+    var station = stations[i];
+    var r = jurisdiction(station.terminalName);
+    regions[r].total++;
+    station.marker = new google.maps.Marker({
+      title: station.terminalName + ": " + station.name,
+      opacity: 0.8,
+      icon: "http://maps.google.com/mapfiles/ms/icons/" + regions[r].color + ".png",
+      position: new google.maps.LatLng(station.lat, station.long),
+      map: map
+      });
+    }
+    document.getElementById('DC').innerHTML += " (" + regions["DC"].total + ")"
+    document.getElementById('Ar').innerHTML += " (" + regions["Arlington"].total + ")"
+    document.getElementById('Al').innerHTML += " (" + regions["Alexandria"].total + ")"
+    document.getElementById('Mo').innerHTML += " (" + regions["Montgomery"].total + ")"
+    document.getElementById('Fa').innerHTML += " (" + regions["Fairfax"].total + ")"
+  });
+</script>
+<div id=map_canvas ></div>
+<div id=controls >
+Enter station no<br>
+to change color:<br>
+<input id="stationNo" onchange="changeNumber()" size="6">
+<table>
+  <tr><td id="DC" style="background-color: rgba(251,88,85,0.8)">DC</td></tr>
+  <tr><td id="Ar" style="background-color: rgba(0,225,60,0.8)">Arlington</td></tr>
+  <tr><td id="Al" style="background-color: rgba(87,129,252,0.8)">Alexandria</td></tr>
+  <tr><td id="Mo" style="background-color: rgba(251,243,87,0.8)">Montgomery</td></tr>
+  <tr><td id="Fa" style="background-color: rgba(126,85,252,0.8)">Fairfax</td></tr>
+</table>
+</div>
+<script src="https://maps.googleapis.com/maps/api/js?callback=initialize&key=AIzaSyAC2Gly8X2mFKSRkUrwLKMWQvUYS54QhsA" async defer></script>
+</body>
+</html>
