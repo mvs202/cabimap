@@ -27,6 +27,9 @@ body {
   left: 0px;
   display: none;
   }
+#functionCode {
+  display: none;
+  }
 </style>
 </head>
 <body>
@@ -59,6 +62,56 @@ function initialize() {
     document.getElementById("controls").style.display = "block";
     });
   map.data.setStyle({visible: false});
+  // ideally source should be https://feeds.capitalbikeshare.com/stations/stations.xml
+  // but they are not (yet) allowing "Access-Control-Allow-Origin"
+  d3.xml("http://mvjantzen.com/cabi/stations.php", function(error, stationsXML) {
+    if (error) throw error;
+    stations = [].map.call(stationsXML.querySelectorAll("station"), function(station) {
+      return {
+        id:                 +station.querySelector("id").textContent,
+        name:                station.querySelector("name").textContent,
+        terminalName:       +station.querySelector("terminalName").textContent,
+        lastCommWithServer: +station.querySelector("lastCommWithServer").textContent,
+        lat:                +station.querySelector("lat").textContent,
+        long:               +station.querySelector("long").textContent,
+        installed:           station.querySelector("installed").textContent,
+        locked:              station.querySelector("locked").textContent,
+        installDate:        +station.querySelector("installDate").textContent,
+        removalDate:        +station.querySelector("removalDate").textContent,
+        temporary:           station.querySelector("temporary").textContent,
+        public:              station.querySelector("public").textContent,
+        nbBikes:            +station.querySelector("nbBikes").textContent,
+        nbEmptyDocks:       +station.querySelector("nbEmptyDocks").textContent,
+        latestUpdateTime:   +station.querySelector("latestUpdateTime").textContent
+        };
+      });
+    var regions = {};
+    regions["DC"] = {color: "red", total: 0};
+    regions["Arlington"] = {color: "green", total: 0};
+    regions["Alexandria"] = {color: "blue", total: 0};
+    regions["Montgomery"] = {color: "yellow", total: 0};
+    regions["Fairfax"] = {color: "purple", total: 0};
+    for (var i = 0; i < stations.length; i++) {
+      var station = stations[i];
+      var r = jurisdiction(station.terminalName);
+      regions[r].total++;
+      station.marker = new google.maps.Marker({
+        title: station.terminalName + ": " + station.name,
+        opacity: 0.8,
+        icon: "http://maps.google.com/mapfiles/ms/icons/" + regions[r].color + ".png",
+        position: new google.maps.LatLng(station.lat, station.long),
+        map: map
+        });
+      }
+      document.getElementById('DC').innerHTML += " (" + regions["DC"].total + ")";
+      document.getElementById('Ar').innerHTML += " (" + regions["Arlington"].total + ")";
+      document.getElementById('Al').innerHTML += " (" + regions["Alexandria"].total + ")";
+      document.getElementById('Mo').innerHTML += " (" + regions["Montgomery"].total + ")";
+      document.getElementById('Fa').innerHTML += " (" + regions["Fairfax"].total + ")";
+    });
+  document.getElementById('functionCode').innerHTML = jurisdiction.toString()
+    .replace(/x\) \{/g, "x) {<br>")
+    .replace(/\}/g, "}<br>");
   }
 
 function jurisdiction(x) {
@@ -81,54 +134,14 @@ function jurisdiction(x) {
   if (x <= 32058) {return "Montgomery";}
                    return "Fairfax";
   }
-
-// ideally source should be https://feeds.capitalbikeshare.com/stations/stations.xml
-// but they are not (yet) allowing "Access-Control-Allow-Origin"
-d3.xml("http://mvjantzen.com/cabi/stations.php", function(error, stationsXML) {
-  if (error) throw error;
-  stations = [].map.call(stationsXML.querySelectorAll("station"), function(station) {
-    return {
-      id:                 +station.querySelector("id").textContent,
-      name:                station.querySelector("name").textContent,
-      terminalName:       +station.querySelector("terminalName").textContent,
-      lastCommWithServer: +station.querySelector("lastCommWithServer").textContent,
-      lat:                +station.querySelector("lat").textContent,
-      long:               +station.querySelector("long").textContent,
-      installed:           station.querySelector("installed").textContent,
-      locked:              station.querySelector("locked").textContent,
-      installDate:        +station.querySelector("installDate").textContent,
-      removalDate:        +station.querySelector("removalDate").textContent,
-      temporary:           station.querySelector("temporary").textContent,
-      public:              station.querySelector("public").textContent,
-      nbBikes:            +station.querySelector("nbBikes").textContent,
-      nbEmptyDocks:       +station.querySelector("nbEmptyDocks").textContent,
-      latestUpdateTime:   +station.querySelector("latestUpdateTime").textContent
-      };
-    });
-  var regions = {};
-  regions["DC"] = {color: "red", total: 0};
-  regions["Arlington"] = {color: "green", total: 0};
-  regions["Alexandria"] = {color: "blue", total: 0};
-  regions["Montgomery"] = {color: "yellow", total: 0};
-  regions["Fairfax"] = {color: "purple", total: 0};
-  for (var i = 0; i < stations.length; i++) {
-    var station = stations[i];
-    var r = jurisdiction(station.terminalName);
-    regions[r].total++;
-    station.marker = new google.maps.Marker({
-      title: station.terminalName + ": " + station.name,
-      opacity: 0.8,
-      icon: "http://maps.google.com/mapfiles/ms/icons/" + regions[r].color + ".png",
-      position: new google.maps.LatLng(station.lat, station.long),
-      map: map
-      });
+function toggleFunction(checkbox) {
+  if (checkbox.checked) {
+    document.getElementById("functionCode").style.display = "block";
     }
-    document.getElementById('DC').innerHTML += " (" + regions["DC"].total + ")"
-    document.getElementById('Ar').innerHTML += " (" + regions["Arlington"].total + ")"
-    document.getElementById('Al').innerHTML += " (" + regions["Alexandria"].total + ")"
-    document.getElementById('Mo').innerHTML += " (" + regions["Montgomery"].total + ")"
-    document.getElementById('Fa').innerHTML += " (" + regions["Fairfax"].total + ")"
-  });
+  else {
+    document.getElementById("functionCode").style.display = "none";
+    }
+  }
 </script>
 <div id=map_canvas ></div>
 <div id=controls >
@@ -142,6 +155,8 @@ to change color:<br>
   <tr><td id="Mo" style="background-color: rgba(251,243,87,0.8)">Montgomery</td></tr>
   <tr><td id="Fa" style="background-color: rgba(126,85,252,0.8)">Fairfax</td></tr>
 </table>
+<label><input type=checkbox onchange="toggleFunction(this)">Show code</label>
+<div id=functionCode ></div>
 </div>
 <script src="https://maps.googleapis.com/maps/api/js?callback=initialize&key=AIzaSyAC2Gly8X2mFKSRkUrwLKMWQvUYS54QhsA" async defer></script>
 </body>
